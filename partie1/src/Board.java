@@ -11,9 +11,9 @@ class Board {
     // Ne pas changer la signature de cette méthode
     public Board() {
         this.board = new Mark[3][3];
-        for (Mark[] marks : this.board) {
-            Arrays.fill(marks, Mark.EMPTY);
-        }
+        Arrays.fill(board[0], Mark.EMPTY);
+        Arrays.fill(board[1], Mark.EMPTY);
+        Arrays.fill(board[2], Mark.EMPTY);
     }
 
     // Place la pièce 'mark' sur le plateau, à la
