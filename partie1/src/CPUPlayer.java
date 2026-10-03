@@ -13,11 +13,14 @@ class CPUPlayer
     // au début de votre MinMax ou Alpha Beta.
     private int numExploredNodes;
 
+    private final Mark cpu;
+
     // Le constructeur reçoit en paramètre le
     // joueur MAX (X ou O)
     public CPUPlayer(Mark cpu){
-
+        this.cpu = cpu;
     }
+
 
     // Ne pas changer cette méthode
     public int  getNumOfExploredNodes(){
