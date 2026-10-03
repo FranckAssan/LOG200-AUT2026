@@ -75,26 +75,27 @@ class CPUPlayer {
 
         List<Move> coups = genererCoupsMinMax(board);
 
+        int meilleur;
+
         // On maximize
         if (joueur.equals(this.cpu)) {
-            int meilleur = Integer.MIN_VALUE;
+            meilleur = Integer.MIN_VALUE;
             for (Move m : coups) {
                 board.play(m, this.cpu);
                 int score = miniMax(board, adversaire, niveau + 1);
                 board.undoCoup(m.getRow(), m.getCol());
                 meilleur = Math.max(meilleur, score);
             }
-            return meilleur;
-        } else {
-            int meilleur = Integer.MAX_VALUE;
+        } else { // Minimise
+            meilleur = Integer.MAX_VALUE;
             for (Move m : coups) {
                 board.play(m, joueur);
                 int score = miniMax(board, this.cpu, niveau + 1);
                 board.undoCoup(m.getRow(), m.getCol());
                 meilleur = Math.min(meilleur, score);
             }
-            return meilleur;
         }
+        return meilleur;
     }
 
     private List<Move> genererCoupsMinMax(Board board) {
