@@ -27,6 +27,9 @@ class CPUPlayer {
         return numExploredNodes;
     }
 
+
+    /// //////////////////////////// MinMax //////////////////////////////////
+
     // Retourne la liste des coups possibles.  Cette liste contient
     // plusieurs coups possibles si et seuleument si plusieurs coups
     // ont le même score.
@@ -34,7 +37,6 @@ class CPUPlayer {
         numExploredNodes = 0;
 
         int bestScore = Integer.MIN_VALUE;
-        Move bestMove = null;
 
         var adversaire = (this.cpu == Mark.O) ? Mark.X : Mark.O;
         ArrayList<Move> nextsMinMaxMove = new ArrayList<>();
@@ -43,37 +45,32 @@ class CPUPlayer {
             for (int j = 0; j < 3; j++) {
                 if (board.getBoard()[i][j] == Mark.EMPTY) {
                     board.play(new Move(i, j), this.cpu);
-                    int score = miniMax(board, adversaire, 1);
+                    int score = miniMax(board, adversaire);
                     board.undoCoup(i, j);
                     if (score > bestScore) {
                         bestScore = score;
-                        bestMove = new Move(i, j);
+                        nextsMinMaxMove.clear();
+                        nextsMinMaxMove.add(new Move(i, j));
+                    } else if (score == bestScore) {
+                        nextsMinMaxMove.add(new Move(i, j));
                     }
                 }
             }
         }
-        if (bestMove != null) {
-            nextsMinMaxMove.add(bestMove);
-        }
         return nextsMinMaxMove;
     }
 
-    private int miniMax(Board board, Mark joueur, int niveau) {
+    private int miniMax(Board board, Mark joueur) {
         numExploredNodes++;
 
         var adversaire = (this.cpu == Mark.O) ? Mark.X : Mark.O;
         var checkEtatPlateau = board.verifierGagnant();
 
         if (checkEtatPlateau != null) {
-            if (checkEtatPlateau.equals(this.cpu)) {
-                return board.evaluate(this.cpu) - niveau;
-            } else if (checkEtatPlateau.equals(Mark.EMPTY)) {
-                return 0;
-            }
-            return niveau - board.evaluate(adversaire);
+            return board.evaluate(this.cpu);   // 100, -100 ou 0
         }
 
-        List<Move> coups = genererCoupsMinMax(board);
+        List<Move> coups = board.genererCoups();
 
         int meilleur;
 
@@ -82,7 +79,7 @@ class CPUPlayer {
             meilleur = Integer.MIN_VALUE;
             for (Move m : coups) {
                 board.play(m, this.cpu);
-                int score = miniMax(board, adversaire, niveau + 1);
+                int score = miniMax(board, adversaire);
                 board.undoCoup(m.getRow(), m.getCol());
                 meilleur = Math.max(meilleur, score);
             }
@@ -90,7 +87,7 @@ class CPUPlayer {
             meilleur = Integer.MAX_VALUE;
             for (Move m : coups) {
                 board.play(m, joueur);
-                int score = miniMax(board, this.cpu, niveau + 1);
+                int score = miniMax(board, this.cpu);
                 board.undoCoup(m.getRow(), m.getCol());
                 meilleur = Math.min(meilleur, score);
             }
@@ -98,22 +95,14 @@ class CPUPlayer {
         return meilleur;
     }
 
-    private List<Move> genererCoupsMinMax(Board board) {
-        List<Move> listeDeCoups = new ArrayList<>();
-        for (int i = 0; i < board.getBoard().length; i++) {
-            for (int j = 0; j < board.getBoard()[i].length; j++) {
-                if (board.getBoard()[i][j] == Mark.EMPTY) {
-                    listeDeCoups.add(new Move(i, j));
-                }
-            }
+    public void cpuPlayMinMax(Board board) {
+        ArrayList<Move> coups = this.getNextMoveMinMax(board);
+        if (!coups.isEmpty()) {
+            board.play(coups.get(0), this.cpu);
         }
-        return listeDeCoups;
     }
 
-    public void cpuPlayMinMax(Board board) {
-        Move move = this.getNextMoveMinMax(board).getFirst();
-        board.play(move, this.cpu);
-    }
+    /// //////////////////////////// ALPHA BETA //////////////////////////////////
 
 
     // Retourne la liste des coups possibles.  Cette liste contient
@@ -121,8 +110,82 @@ class CPUPlayer {
     // ont le même score.
     public ArrayList<Move> getNextMoveAB(Board board) {
         numExploredNodes = 0;
-        return null;
+
+        int bestScore = Integer.MIN_VALUE;
+
+        var adversaire = (this.cpu == Mark.O) ? Mark.X : Mark.O;
+        ArrayList<Move> nextsMinMaxMove = new ArrayList<>();
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board.getBoard()[i][j] == Mark.EMPTY) {
+                    board.play(new Move(i, j), this.cpu);
+                    int score = alphaBeta(board, adversaire, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                    board.undoCoup(i, j);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        nextsMinMaxMove.clear();
+                        nextsMinMaxMove.add(new Move(i, j));
+                    } else if (score == bestScore) {
+                        nextsMinMaxMove.add(new Move(i, j));
+                    }
+                }
+            }
+        }
+
+        return nextsMinMaxMove;
     }
 
+    private int alphaBeta(Board board, Mark joueur, int alpha, int beta) {
+        numExploredNodes++;
+
+        var adversaire = (this.cpu == Mark.O) ? Mark.X : Mark.O;
+        var checkEtatPlateau = board.verifierGagnant();
+
+        if (checkEtatPlateau != null) {
+            return board.evaluate(this.cpu);   // 100, -100 ou 0
+        }
+
+        List<Move> coups = board.genererCoups();
+
+        int meilleur;
+
+        // On maximize
+        if (joueur.equals(this.cpu)) {
+            meilleur = Integer.MIN_VALUE;
+            for (Move m : coups) {
+                board.play(m, this.cpu);
+                int score = alphaBeta(board, adversaire, alpha, beta);
+                board.undoCoup(m.getRow(), m.getCol());
+                meilleur = Math.max(meilleur, score);
+                alpha = Math.max(alpha, meilleur);
+
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+        } else { // Minimise
+            meilleur = Integer.MAX_VALUE;
+            for (Move m : coups) {
+                board.play(m, joueur);
+                int score = alphaBeta(board, this.cpu, alpha, beta);
+                board.undoCoup(m.getRow(), m.getCol());
+                meilleur = Math.min(meilleur, score);
+                beta = Math.min(beta, meilleur);
+
+                if (alpha >= beta) {
+                    break;
+                }
+            }
+        }
+        return meilleur;
+    }
+
+    public void cpuPlayAlphaBeta(Board board) {
+        ArrayList<Move> coups = this.getNextMoveAB(board);
+        if (!coups.isEmpty()) {
+            board.play(coups.get(0), this.cpu);
+        }
+    }
 
 }

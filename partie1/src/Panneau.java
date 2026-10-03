@@ -14,7 +14,7 @@ public class Panneau extends JPanel {
         this.board = boards;
         this.gamePanel = new JPanel(new GridLayout(3, 3));
         this.setLayout(new BorderLayout());
-        this.setGamePanel();
+        this.initPanel();
         this.add(gamePanel, BorderLayout.CENTER);
         winnerLabel.setHorizontalAlignment(SwingConstants.CENTER);
         winnerLabel.setFont(new Font("Arial", Font.BOLD, 20));
@@ -32,28 +32,39 @@ public class Panneau extends JPanel {
             this.board.play(move, mark);
         }
         if (this.board.verifierGagnant() == null) {
-            cpuPlayer.cpuPlayMinMax(board);
+//            cpuPlayer.cpuPlayMinMax(board);
+            cpuPlayer.cpuPlayAlphaBeta(board);
         }
         checkForAWinner();
     }
 
-    private void checkForAWinner() {
-        if (!gameIsNotOver()) {
+   /* private void checkForAWinner() {
+        if (!verifierEtatJeu()) {
             String winner = String.valueOf(this.board.verifierGagnant());
-            System.out.println(winner);
             if (winner.equals(Mark.EMPTY.toString())) {
                 winnerLabel.setText("Egalité!");
             } else {
                 winnerLabel.setText(winner + " Gagne!");
             }
-        }
-    }
 
-    private boolean gameIsNotOver() {
+        }
+    }*/
+
+	private void checkForAWinner() {
+   	    Mark gagnant = this.board.verifierGagnant();
+   	    if (gagnant == null) return;               // partie pas finie
+   	    if (gagnant == Mark.EMPTY) {
+    	        winnerLabel.setText("Egalité!");
+   	    } else {
+       		 winnerLabel.setText(gagnant.name() + " Gagne!");
+    	    }
+	}
+
+    private boolean verifierEtatJeu() {
         return this.board.verifierGagnant() == null;
     }
 
-    private void setGamePanel() {
+    private void initPanel() {
         for (int i = 0; i < this.board.getBoard()[0].length; i++) {
             for (int j = 0; j < this.board.getBoard()[1].length; j++) {
                 jButtons[i][j] = new JButton();
@@ -64,13 +75,12 @@ public class Panneau extends JPanel {
                 jButtons[i][j].addActionListener(e -> {
                     if (board.getBoard()[ii][jj].equals(Mark.EMPTY)) {
                         jButtons[ii][jj].setText(Mark.O.name());
-                        if (gameIsNotOver()) {
+                        if (verifierEtatJeu()) {
                             humanMove(new Move(ii, jj), Mark.O);
                         }
 
                         this.updatePanel();
                     }
-
                 });
                 this.gamePanel.add(jButtons[i][j]);
             }
@@ -80,9 +90,13 @@ public class Panneau extends JPanel {
     private void updatePanel() {
         for (int i = 0; i < board.getBoard()[0].length; i++) {
             for (int j = 0; j < board.getBoard()[1].length; j++) {
-                this.jButtons[i][j].setText(this.board.getBoard()[i][j].toString());
+                //this.jButtons[i][j].setText(this.board.getBoard()[i][j].toString());
+                  this.jButtons[i][j].setText(texte(this.board.getBoard()[i][j]));
             }
         }
     }
 
+    private String texte(Mark m) {
+        return m == Mark.EMPTY ? "" : m.name();
+    }
 }

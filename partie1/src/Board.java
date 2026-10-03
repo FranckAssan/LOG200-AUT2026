@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 // IMPORTANT: Il ne faut pas changer la signature des méthodes
 // de cette classe, ni le nom de la classe.
@@ -31,11 +32,11 @@ class Board {
     //          -100 pour une défaite
     //           0   pour un match nul
     // Ne pas changer la signature de cette méthode
+
     public int evaluate(Mark mark) {
-        var gagant = this.verifierGagnant();
-        if (!gagant.equals(mark) && !mark.equals(Mark.EMPTY)) return -100;
-        if (mark == gagant) return 100;
-        return 0;
+        Mark gagnant = verifierGagnant();
+        if (gagnant == null || gagnant == Mark.EMPTY) return 0;  // pas fini ou nul
+        return gagnant == mark ? 100 : -100;
     }
 
     public Mark[][] getBoard() {
@@ -92,5 +93,24 @@ class Board {
 
     public void undoCoup(int row, int col) {
         this.board[row][col] = Mark.EMPTY;
+    }
+
+
+    /**
+     * Génère la liste de tous les coups possibles sur le plateau actuel,
+     * c'est-à-dire toutes les cases vides.
+     * Les cases sont parcourues de gauche à droite et de haut en bas.
+     *  * @return la liste des cases vides (vide si le plateau est plein)
+     */
+    public List<Move> genererCoups() {
+        List<Move> coups = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j] == Mark.EMPTY) {
+                    coups.add(new Move(i, j));
+                }
+            }
+        }
+        return coups;
     }
 }
