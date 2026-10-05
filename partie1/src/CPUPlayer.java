@@ -121,11 +121,111 @@ class CPUPlayer
 
     }
 
+    private int alphaBeta(Board board, boolean isMaxTurn, int alpha, int beta) {
+
+       numExploredNodes++;
+
+       int score = board.evaluate(cpu);
+
+       if (score == 100 || score == -100) {
+           return score;
+       }
+
+       ArrayList<Move> moves = board.getPossibleMoves();
+
+       if (moves.isEmpty()) {
+           return 0;
+       }
+
+       if (isMaxTurn) {
+
+           int bestScore = Integer.MIN_VALUE;
+
+           for (Move move : moves) {
+
+               Board newBoard = board.copy();
+               newBoard.play(move, cpu);
+
+               int currentScore =
+                   alphaBeta(newBoard, false, alpha, beta);
+
+               bestScore = Math.max(bestScore, currentScore);
+
+               alpha = Math.max(alpha, bestScore);
+
+               if (alpha >= beta) {
+                break;
+               }
+           }
+
+           return bestScore;
+
+       } else {
+
+           int bestScore = Integer.MAX_VALUE;
+
+           for (Move move : moves) {
+
+               Board newBoard = board.copy();
+               newBoard.play(move, opponent);
+
+               int currentScore =
+                   alphaBeta(newBoard, true, alpha, beta);
+
+               bestScore = Math.min(bestScore, currentScore);
+
+               beta = Math.min(beta, bestScore);
+
+               if (alpha >= beta) {
+                   break;
+               }
+           }
+
+           return bestScore;
+       }
+   }
+
+
+
     // Retourne la liste des coups possibles.  Cette liste contient
     // plusieurs coups possibles si et seuleument si plusieurs coups
     // ont le même score.
     public ArrayList<Move> getNextMoveAB(Board board){
         numExploredNodes = 0;
+
+        ArrayList<Move> bestMoves = new ArrayList<>();
+        ArrayList<Move> moves = board.getPossibleMoves();
+
+        int bestScore = Integer.MIN_VALUE;
+
+        int alpha = Integer.MIN_VALUE;
+        int beta = Integer.MAX_VALUE;
+
+        for (Move move : moves) {
+
+            Board newBoard = board.copy();
+
+            newBoard.play(move, cpu);
+
+            int currentScore =
+                alphaBeta(newBoard, false, alpha, beta);
+
+            if (currentScore > bestScore) {
+
+                bestScore = currentScore;
+
+                bestMoves.clear();
+
+                bestMoves.add(move);
+
+            } else if (currentScore == bestScore) {
+
+                bestMoves.add(move);
+            }
+            alpha = Math.max(alpha, bestScore);
+        }
+
+        return bestMoves;
 
     }
 
