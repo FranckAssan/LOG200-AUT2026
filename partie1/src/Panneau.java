@@ -38,7 +38,7 @@ public class Panneau extends JPanel {
         checkForAWinner();
     }
 
-   /* private void checkForAWinner() {
+    private void checkForAWinner() {
         if (!verifierEtatJeu()) {
             String winner = String.valueOf(this.board.verifierGagnant());
             if (winner.equals(Mark.EMPTY.toString())) {
@@ -94,9 +94,5 @@ public class Panneau extends JPanel {
                   this.jButtons[i][j].setText(texte(this.board.getBoard()[i][j]));
             }
         }
-    }
-
-    private String texte(Mark m) {
-        return m == Mark.EMPTY ? "" : m.name();
     }
 }
