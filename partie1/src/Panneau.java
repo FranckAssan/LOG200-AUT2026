@@ -48,7 +48,17 @@ public class Panneau extends JPanel {
             }
 
         }
-    }
+    }*/
+
+	private void checkForAWinner() {
+   	    Mark gagnant = this.board.verifierGagnant();
+   	    if (gagnant == null) return;               // partie pas finie
+   	    if (gagnant == Mark.EMPTY) {
+    	        winnerLabel.setText("Egalité!");
+   	    } else {
+       		 winnerLabel.setText(gagnant.name() + " Gagne!");
+    	    }
+	}
 
     private boolean verifierEtatJeu() {
         return this.board.verifierGagnant() == null;
@@ -80,7 +90,8 @@ public class Panneau extends JPanel {
     private void updatePanel() {
         for (int i = 0; i < board.getBoard()[0].length; i++) {
             for (int j = 0; j < board.getBoard()[1].length; j++) {
-                this.jButtons[i][j].setText(this.board.getBoard()[i][j].toString());
+                //this.jButtons[i][j].setText(this.board.getBoard()[i][j].toString());
+                  this.jButtons[i][j].setText(texte(this.board.getBoard()[i][j]));
             }
         }
     }
