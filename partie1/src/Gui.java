@@ -6,7 +6,7 @@ public class Gui extends JFrame implements Runnable {
 
     public Gui(JPanel panel) {
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.setSize(400, 400);
+        this.setSize(900, 900);
         this.setLocationRelativeTo(null);
         this.setPanel(panel);
         panel.addMouseListener(new MouseAdapter() {
