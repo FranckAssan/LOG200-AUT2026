@@ -80,12 +80,14 @@ public class Board {
         };
 
         for (int[] dir : directions) {
-            int r = row + dir[0];
-            int c = col + dir[1];
-            while (r >= 0 && r < board.length && c >= 0 && c < board[0].length && board[r][c] == Mark.EMPTY) {
-                move.add(new Move(r, c));
-                r += dir[0];
-                c += dir[1];
+            for (int step = 1; step <= 3; step++) {
+                int r = row + dir[0] * step;
+                int c = col + dir[1] * step;
+                if (r >= 0 && r < board.length && c >= 0 && c < board[0].length && board[r][c] == Mark.EMPTY) {
+                    move.add(new Move(r, c));
+                } else {
+                    break;
+                }
             }
         }
 

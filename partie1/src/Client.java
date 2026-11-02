@@ -55,7 +55,10 @@ class Client {
                         System.out.println("Nouvelle partie! Vous jouez rouge.");
                         System.out.println("Entrez votre premier coup : ");
 
-                        connection.sendMove(console.readLine());
+                        String coupsToSend = cpuPlayer.cpuPlayAlphaBeta(gameBoard, message.getData());
+                        IO.println("CPU - CPU move: " + coupsToSend);
+
+                        connection.sendMove(coupsToSend);
                         break;
 
                     case GameConnection.PLAY_BLACK:
@@ -73,10 +76,10 @@ class Client {
                         System.out.println("Entrez votre coup : ");
 
                         assert cpuPlayer != null;
-                        String coupsToSend = cpuPlayer.cpuPlayAlphaBeta(gameBoard, message.getData());
-                        IO.println("CPU - CPU move: " + coupsToSend);
+                        String coupsToSendRouge = cpuPlayer.cpuPlayAlphaBeta(gameBoard, message.getData());
+                        IO.println("CPU - CPU move: " + coupsToSendRouge);
 
-                        connection.sendMove(coupsToSend);
+                        connection.sendMove(coupsToSendRouge);
                         break;
 
                     case GameConnection.INVALID_MOVE:
