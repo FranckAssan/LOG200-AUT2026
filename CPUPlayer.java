@@ -434,19 +434,23 @@ public class CPUPlayer {
         var adversaire = (this.cpu == Mark.N) ? Mark.R : Mark.N;
         Mark[][] b = board.getBoard();
 
+        Mark gagnant = board.verifierGagnant(joueur, myCol, myCol, oppRow, oppCol);
+
+        if (gagnant != null) {
+            if (gagnant.equals(this.cpu)) {
+                return board.evaluer(myRow, myRow, oppRow, oppCol) - 1;
+            } else if (gagnant.equals(adversaire)) {
+                return 1 - board.evaluer(myRow, myRow, oppRow, oppCol);
+            } else {
+                return 0;
+            }
+        }
+
+        int meilleur;
+
         if (joueur.equals(this.cpu)) {
-
+            meilleur = Integer.MIN_VALUE;
             List<Move> possibleMove = board.searchPossibleMove(myRow, myCol);
-
-            if (possibleMove.isEmpty()) {
-                return -VICTOIRE + depth;   // je perds ; plus c'est tard, moins c'est grave
-            }
-            if (depth >= this.profondeurMaxAB) {
-                limiteAtteinte = true;
-                return board.evaluer(myRow, myCol, oppRow, oppCol);
-            }
-
-            int meilleur = Integer.MIN_VALUE;
 
             for (Move m : possibleMove) {
                 b[myRow][myCol] = Mark.EMPTY;
@@ -472,18 +476,10 @@ public class CPUPlayer {
                     break;
                 }
             }
-            return meilleur;
         } else {
+            meilleur = Integer.MAX_VALUE;
             List<Move> possibleMove = board.searchPossibleMove(oppRow, oppCol);
-            if (possibleMove.isEmpty()) {
-                return VICTOIRE - depth;    // l'adversaire perd ; plus c'est tot, mieux c'est
-            }
-            if (depth >= this.profondeurMaxAB) {
-                limiteAtteinte = true;
-                return board.evaluer(myRow, myCol, oppRow, oppCol);
-            }
 
-            int meilleur = Integer.MAX_VALUE;
             for (Move m : possibleMove) {
                 b[oppRow][oppCol] = Mark.EMPTY;
                 b[m.getRow()][m.getCol()] = adversaire;
@@ -508,8 +504,9 @@ public class CPUPlayer {
                     break;
                 }
             }
-            return meilleur;
         }
+
+        return meilleur;
     }
 
 }

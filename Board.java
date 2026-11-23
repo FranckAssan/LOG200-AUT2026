@@ -10,16 +10,6 @@ public class Board {
     private final HashMap<String, Move> positionsMap = new HashMap<>();
 
     // Ne pas changer la signature de cette méthode
-    public Board() {
-        this.board = new Mark[3][3];
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                board[i][j] = Mark.EMPTY;
-                Move m = new Move(i, j);
-                this.positionsMap.put(m.toString(), m);
-            }
-        }
-    }
 
     public Board(int rows, int cols) {
         this.board = new Mark[rows][cols];
@@ -34,7 +24,6 @@ public class Board {
             }
         }
     }
-
 
     public Move getRowColFromPosMap(String key) {
         if (key == null) return null;
@@ -66,32 +55,6 @@ public class Board {
             }
         }
         return null;
-    }
-
-    public List<Move> searchPossibleMove(int row, int col) {
-        List<Move> move = new ArrayList<>();
-        if (row < 0 || row >= board.length || col < 0 || col >= board[0].length) {
-            return move;
-        }
-
-        int[][] directions = {
-                {-1, 0}, {1, 0}, {0, -1}, {0, 1},
-                {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
-        };
-
-        for (int[] dir : directions) {
-            for (int step = 1; step <= 3; step++) {
-                int r = row + dir[0] * step;
-                int c = col + dir[1] * step;
-                if (r >= 0 && r < board.length && c >= 0 && c < board[0].length && board[r][c] == Mark.EMPTY) {
-                    move.add(new Move(r, c));
-                } else {
-                    break;
-                }
-            }
-        }
-
-        return move;
     }
 
     public List<Move> getNbOfDestroyedSquare(int adversaireRow, int adversaireCol, Mark currentPlayer) {
@@ -167,46 +130,15 @@ public class Board {
         return move;
     }
 
-
-    // Place la pièce 'mark' sur le plateau, à la
-    // position spécifiée dans Move
-    //
-    // Ne pas changer la signature de cette méthode
-    public void play(Move deplacement, Mark mark) {
-        if (this.board[deplacement.getRow()][deplacement.getCol()] == Mark.EMPTY) {
-            this.board[deplacement.getRow()][deplacement.getCol()] = mark;
-        }
-    }
-
     public void destruireCase(Move caseAsupprimer) {
         if (this.board[caseAsupprimer.getRow()][caseAsupprimer.getCol()] == Mark.EMPTY) {
             this.board[caseAsupprimer.getRow()][caseAsupprimer.getCol()] = Mark.DESTROYED;
         }
     }
 
-
-    public int evaluate(Mark currentPlayer, int row, int col) {
-        Mark gagnant = verifierGagnant(currentPlayer, row, col);
-        if (gagnant == null || gagnant == Mark.EMPTY) {
-            return 0; // pas fini ou nul
-        }
-        return gagnant == currentPlayer ? 100 : -100;
-    }
-
-    public Mark verifierGagnant(Mark player, int row, int col) {
-        var adversaire = (player == Mark.N) ? Mark.R : Mark.N;
-        List<Move> moveDisponiblesForPlayer = this.searchPossibleMove(row, col);
-        if (moveDisponiblesForPlayer.isEmpty()) {
-            return adversaire;
-        }
-        return null;
-    }
-
-
     public Mark[][] getBoard() {
         return board;
     }
-
 
     public Mark verifierGagnant(Mark player, int row, int col, int adversaireRow, int adversaireCol) {
         Mark adversaire = (player == Mark.N) ? Mark.R : Mark.N;
@@ -218,24 +150,6 @@ public class Board {
         }
         return null;
     }
-
-    public void undoCoup(int row, int col) {
-        if (row >= 0 && row < board.length && col >= 0 && col < board[0].length) {
-            this.board[row][col] = Mark.EMPTY;
-        }
-    }
-
-    public void undoCoup(Move deplacement, Move caseDetruite) {
-        if (deplacement != null && deplacement.getRow() >= 0 && deplacement.getRow() < board.length
-                && deplacement.getCol() >= 0 && deplacement.getCol() < board[0].length) {
-            this.board[deplacement.getRow()][deplacement.getCol()] = Mark.EMPTY;
-        }
-        if (caseDetruite != null && caseDetruite.getRow() >= 0 && caseDetruite.getRow() < board.length
-                && caseDetruite.getCol() >= 0 && caseDetruite.getCol() < board[0].length) {
-            this.board[caseDetruite.getRow()][caseDetruite.getCol()] = Mark.EMPTY;
-        }
-    }
-
 
     public void ajouterCoupsRecu(Board board, String coupRecu, Mark cpu) {
         if (coupRecu == null || coupRecu.trim().isEmpty()) {
@@ -332,6 +246,31 @@ public class Board {
         return sb.toString();
     }
 
+    public List<Move> searchPossibleMove(int row, int col) {
+        List<Move> move = new ArrayList<>();
+        if (row < 0 || row >= board.length || col < 0 || col >= board[0].length) {
+            return move;
+        }
+
+        int[][] directions = {
+                {-1, 0}, {1, 0}, {0, -1}, {0, 1},
+                {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
+        };
+
+        for (int[] dir : directions) {
+            for (int step = 1; step <= 3; step++) {
+                int r = row + dir[0] * step;
+                int c = col + dir[1] * step;
+                if (r >= 0 && r < board.length && c >= 0 && c < board[0].length && board[r][c] == Mark.EMPTY) {
+                    move.add(new Move(r, c));
+                } else {
+                    break;
+                }
+            }
+        }
+
+        return move;
+    }
 
     public int evaluer(int playerRow, int plaerCol, int oppRow, int oppCol) {
 //        int myMobility = searchPossibleMove(myRow, myCol).size();
@@ -341,15 +280,14 @@ public class Board {
     }
 
     public int voronoiTerritory(int playerRow, int playerCol, int oppRow, int oppCol) {
-        int[][] playerVoisins = caseSVoisines(playerRow, playerCol);
-        int[][] opponentVoisins = caseSVoisines(oppRow, oppCol);
+        int[][] playerVoisins = casesVoisines(playerRow, playerCol);
+        int[][] opponentVoisins = casesVoisines(oppRow, oppCol);
         int playerScore = 0;
         int opponentScore = 0;
 
 //        String[][] testBoad = new String[this.board.length][this.board[0].length];
 
         for (int i = 0; i < this.board.length; i++) {
-
             for (int j = 0; j < this.board[i].length; j++) {
                 if (this.board[i][j] == Mark.DESTROYED || this.board[i][j] != Mark.EMPTY) {
                     continue;
@@ -382,8 +320,7 @@ public class Board {
         return 3 * scoreTerritoire + 2 * mobility;
     }
 
-
-    private int[][] caseSVoisines(int row, int col) {
+    private int[][] casesVoisines(int row, int col) {
         int rows = board.length;
         int cols = board[0].length;
 
