@@ -93,14 +93,12 @@ class Client {
                     case GameConnection.GAME_OVER:
                         if (message.getData().isEmpty()) {
                             System.out.println("Partie terminée.");
-                            // Reset le board et CPU
-                            cpuPlayer = null;
-                            gameBoard = null;
                         } else {
                             System.out.println("Partie terminée. Dernier coup : " + message.getData());
-                            cpuPlayer = null;
-                            gameBoard = null;
                         }
+                        // On libere la memoire maintenant, entre deux parties, pour eviter
+                        // une pause de Java pendant le premier coup (chronometre) de la partie suivante.
+                        System.gc();
                         break;
 
                     default:

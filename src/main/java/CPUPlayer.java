@@ -113,7 +113,7 @@ public class CPUPlayer {
             adverseCol = 5;
         }
 
-        List<Move> possibleMove = board.searchPossibleMove(this.cpuRowPos, this.cpuColPos);
+        List<Move> possibleMove = board.searchPossibleMove(this.cpuRowPos, this.cpuColPos, this.cpu);
 
         for (Move deplace : possibleMove) {
             board.getBoard()[this.cpuRowPos][this.cpuColPos] = Mark.EMPTY;
@@ -155,7 +155,7 @@ public class CPUPlayer {
         numExploredNodes++;
         var adversaire = (this.cpu == Mark.N) ? Mark.R : Mark.N;
 
-        List<Move> coupsPossibles = board.searchPossibleMove(row, col);
+        List<Move> coupsPossibles = board.searchPossibleMove(row, col, this.cpu);
 
         if (joueur.equals(this.cpu)) {   // On maximize
             if (coupsPossibles.isEmpty()) {
@@ -163,7 +163,7 @@ public class CPUPlayer {
             }
             if (niveau >= this.PROFONDEUR_MAX) {
                 int cpuNbCoupsPossible = coupsPossibles.size();
-                int adversaireNbCoupsPossible = board.searchPossibleMove(oppRow, oppCol).size();
+                int adversaireNbCoupsPossible = board.searchPossibleMove(oppRow, oppCol, adversaire).size();
                 return (cpuNbCoupsPossible * 2) - (adversaireNbCoupsPossible * 3);
             }
 
@@ -190,7 +190,7 @@ public class CPUPlayer {
             }
             if (niveau >= this.PROFONDEUR_MAX) {
                 int oppMobility = coupsPossibles.size();
-                int myMobility = board.searchPossibleMove(row, col).size();
+                int myMobility = board.searchPossibleMove(row, col, this.cpu).size();
                 return (myMobility * 2) - (oppMobility * 3);
             }
 
@@ -213,6 +213,10 @@ public class CPUPlayer {
         }
     }
 
+
+    public void gererCoupsInvalideMinMax() {
+
+    }
 
     /// //////////////////////////// ALPHA BETA //////////////////////////////////
     ///  Alpha-beta avec approfondissement iteratif : on cherche a profondeur 1,
@@ -245,14 +249,12 @@ public class CPUPlayer {
         return tempsEcoule;
     }
 
-
     public String cpuPlayAlphaBeta(Board board, String coupRecu) {
         long debut = System.nanoTime();
         board.ajouterCoupsRecu(board, coupRecu, this.cpu);
 
         int oppRow = -1, oppCol = -1;
         Mark adversaire = (this.cpu == Mark.N) ? Mark.R : Mark.N;
-
         for (int r = 0; r < board.getBoard().length; r++) {
             for (int c = 0; c < board.getBoard()[r].length; c++) {
                 if (board.getBoard()[r][c] == this.cpu) {
@@ -268,17 +270,17 @@ public class CPUPlayer {
         int oldRow = this.cpuRowPos;
         int oldCol = this.cpuColPos;
 
-        // Marge de securite : 20 % du temps, au moins 500 ms (reseau, JVM, ramasse-miettes).
-        // Avec 5000 ms, la recherche s'arrete a 4000 ms.
-        long marge = Math.max(500, tempsMaxMs / 5);
+        // Marge de securite : 30 % du temps, au moins 1000 ms (reseau, JVM, ramasse-miettes),
+        // mais jamais plus de la moitie du temps. Avec 5000 ms, la recherche s'arrete a 3500 ms.
+        long marge = Math.min(tempsMaxMs / 2, Math.max(1000, tempsMaxMs * 3 / 10));
         long budget = Math.max(50, tempsMaxMs - marge);
         this.echeanceNs = debut + budget * 1_000_000L;
 
         ArrayList<Move> coups = this.getNextMoveAB(board, oppRow, oppCol);
 
-//        long dureeMs = (System.nanoTime() - debut) / 1_000_000L;
-//        System.out.println("CPU - profondeur " + derniereProfondeur + ", "
-//                + numExploredNodes + " noeuds, " + dureeMs + " ms");
+        long dureeMs = (System.nanoTime() - debut) / 1_000_000L;
+        System.out.println("CPU - profondeur " + derniereProfondeur + ", "
+                + numExploredNodes + " noeuds, " + dureeMs + " ms");
 
         if (coups != null && coups.size() >= 2) {
             Move deplace = coups.get(0);
@@ -290,8 +292,6 @@ public class CPUPlayer {
             this.cpuRowPos = deplace.getRow();
             this.cpuColPos = deplace.getCol();
 
-//            board.voronoiTerritory(this.cpuRowPos, this.cpuColPos, oppRow, oppCol);
-
             Move from = new Move(oldRow, oldCol);
             if (coupRecu != null && coupRecu.contains("row=")) {
                 return from + "-" + deplace + "-" + detruire;
@@ -301,8 +301,6 @@ public class CPUPlayer {
                         board.toAlgebraic(detruire, board.getBoard().length);
             }
         }
-
-
         return "";
     }
 
@@ -311,6 +309,7 @@ public class CPUPlayer {
         numExploredNodes = 0;
         tempsEcoule = false;
         derniereProfondeur = 0;
+        for (Killer[] pair : killers) java.util.Arrays.fill(pair, null);
 
         var adversaire = (this.cpu == Mark.N) ? Mark.R : Mark.N;
         Mark[][] b = board.getBoard();
@@ -334,7 +333,7 @@ public class CPUPlayer {
 
         // 1) Liste de tous les coups racine (deplacement + destruction), generee une seule fois.
         ArrayList<Move[]> candidats = new ArrayList<>();
-        for (Move deplace : board.searchPossibleMove(this.cpuRowPos, this.cpuColPos)) {
+        for (Move deplace : board.searchPossibleMove(this.cpuRowPos, this.cpuColPos, this.cpu)) {
             b[this.cpuRowPos][this.cpuColPos] = Mark.EMPTY;
             b[deplace.getRow()][deplace.getCol()] = this.cpu;
             for (Move detruire : board.getNbOfDestroyedSquare(adverseRow, adverseCol, this.cpu)) {
@@ -349,8 +348,8 @@ public class CPUPlayer {
             return meilleurCoup;   // aucun deplacement possible : partie perdue
         }
         // Coup de secours si meme la profondeur 1 n'a pas le temps de finir.
-        meilleurCoup.add(candidats.get(0)[0]);
-        meilleurCoup.add(candidats.get(0)[1]);
+        meilleurCoup.add(candidats.getFirst()[0]);
+        meilleurCoup.add(candidats.getFirst()[1]);
 
         int[] scores = new int[candidats.size()];
 
@@ -404,13 +403,8 @@ public class CPUPlayer {
             // Tri des coups racine : les meilleurs de cette profondeur seront essayes en premier
             // a la suivante, ce qui rend l'elagage alpha-beta beaucoup plus efficace.
             Integer[] ordre = new Integer[candidats.size()];
-
-            for (int i = 0; i < ordre.length; i++) {
-                ordre[i] = i;
-            }
-
+            for (int i = 0; i < ordre.length; i++) ordre[i] = i;
             final int[] s = scores;
-
             java.util.Arrays.sort(ordre, (x, y) -> Integer.compare(s[y], s[x]));
             ArrayList<Move[]> tries = new ArrayList<>();
             int[] nouveauxScores = new int[scores.length];
@@ -425,6 +419,31 @@ public class CPUPlayer {
         return meilleurCoup;
     }
 
+
+    private int evaluer(Board board, int myRow, int myCol, int oppRow, int oppCol, Mark adversaire) {
+        int myMobility = board.searchPossibleMove(myRow, myCol, this.cpu).size();
+        int oppMobility = board.searchPossibleMove(oppRow, oppCol, adversaire).size();
+        return (myMobility * 2) - (oppMobility * 3);
+    }
+
+    // Deux coups complets par profondeur (ply), conserves entre iterations.
+    private final Killer[][] killers = new Killer[65][2];
+
+    private record Killer(int row, int col, int toRow, int toCol, int destroyRow, int destroyCol) {
+        boolean matches(int r, int c, Move m, Move d) {
+            return row == r && col == c && toRow == m.getRow() &&
+                    toCol == m.getCol() && destroyRow == d.getRow() && destroyCol == d.getCol();
+        }
+    }
+
+    private void rememberKiller(int depth, int r, int c, Move m, Move d) {
+        Killer first = killers[depth][0];
+        if (first != null && first.matches(r, c, m, d)) return;
+        killers[depth][1] = first;
+        killers[depth][0] = new Killer(r, c, m.getRow(), m.getCol(),
+                d.getRow(), d.getCol());
+    }
+
     private int alphaBeta(
             Board board, Mark joueur, int myRow, int myCol, int oppRow, int oppCol, int depth, int alpha, int beta
     ) {
@@ -434,79 +453,90 @@ public class CPUPlayer {
         var adversaire = (this.cpu == Mark.N) ? Mark.R : Mark.N;
         Mark[][] b = board.getBoard();
 
-        if (joueur.equals(this.cpu)) {
-            List<Move> possibleMove = board.searchPossibleMove(myRow, myCol);
-            if (possibleMove.isEmpty()) {
-                return -VICTOIRE + depth;   // je perds ; plus c'est tard, moins c'est grave
-            }
-            if (depth >= this.profondeurMaxAB) {
-                limiteAtteinte = true;
-                return board.evaluer(myRow, myCol, oppRow, oppCol);
-            }
+        boolean max = joueur == this.cpu;
+        int r = max ? myRow : oppRow;
+        int c = max ? myCol : oppCol;
+        int targetR = max ? oppRow : myRow;
+        int targetC = max ? oppCol : myCol;
+        Mark next = max ? adversaire : this.cpu;
+        List<Move> moves = board.searchPossibleMove(r, c, joueur);
 
-            int meilleur = Integer.MIN_VALUE;
-            for (Move m : possibleMove) {
-                b[myRow][myCol] = Mark.EMPTY;
-                b[m.getRow()][m.getCol()] = this.cpu;
+        if (moves.isEmpty())
+            return max ? -VICTOIRE + depth : VICTOIRE - depth;
 
-                for (Move d : board.getNbOfDestroyedSquare(oppRow, oppCol, this.cpu)) {
-                    board.destruireCase(d);
-                    int score = alphaBeta(
-                            board, adversaire, m.getRow(), m.getCol(), oppRow, oppCol, depth + 1, alpha, beta
-                    );
-                    b[d.getRow()][d.getCol()] = Mark.EMPTY;
-
-                    meilleur = Math.max(meilleur, score);
-                    alpha = Math.max(alpha, meilleur);
-                    if (alpha >= beta || tempsEcoule) {
-                        break;
-                    }
-                }
-
-                b[m.getRow()][m.getCol()] = Mark.EMPTY;
-                b[myRow][myCol] = this.cpu;
-                if (alpha >= beta || tempsEcoule) {
-                    break;
-                }
-            }
-            return meilleur;
-        } else {
-            List<Move> possibleMove = board.searchPossibleMove(oppRow, oppCol);
-            if (possibleMove.isEmpty()) {
-                return VICTOIRE - depth;    // l'adversaire perd ; plus c'est tot, mieux c'est
-            }
-            if (depth >= this.profondeurMaxAB) {
-                limiteAtteinte = true;
-                return board.evaluer(myRow, myCol, oppRow, oppCol);
-            }
-
-            int meilleur = Integer.MAX_VALUE;
-            for (Move m : possibleMove) {
-                b[oppRow][oppCol] = Mark.EMPTY;
-                b[m.getRow()][m.getCol()] = adversaire;
-
-                for (Move d : board.getNbOfDestroyedSquare(myRow, myCol, adversaire)) {
-                    board.destruireCase(d);
-                    int score = alphaBeta(
-                            board, this.cpu, myRow, myCol, m.getRow(), m.getCol(), depth + 1, alpha, beta
-                    );
-                    b[d.getRow()][d.getCol()] = Mark.EMPTY;
-
-                    meilleur = Math.min(meilleur, score);
-                    beta = Math.min(beta, meilleur);
-                    if (alpha >= beta || tempsEcoule) {
-                        break;
-                    }
-                }
-
-                b[m.getRow()][m.getCol()] = Mark.EMPTY;
-                b[oppRow][oppCol] = adversaire;
-                if (alpha >= beta || tempsEcoule) {
-                    break;
-                }
-            }
-            return meilleur;
+        if (depth >= profondeurMaxAB) {
+            limiteAtteinte = true;
+            return evaluer(board, myRow, myCol, oppRow, oppCol, adversaire);
         }
-    }
 
+        int meilleur = max ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+
+        Killer tried0 = null, tried1 = null;
+
+        // Tester les killers avant les autres coups, seulement s'ils sont legaux.
+        for (int i = 0; i < 2; i++) {
+            Killer k = killers[depth][i];
+            if (k == null || k.row() != r || k.col() != c) continue;
+
+            Move m = null;
+
+            for (Move candidate : moves) {
+                if (candidate.getRow() == k.toRow() && candidate.getCol() == k.toCol()) {
+                    m = candidate;
+                    break;
+                }
+            }
+            if (m == null) continue;
+            b[r][c] = Mark.EMPTY;
+            b[m.getRow()][m.getCol()] = joueur;
+            Move d = null;
+            for (Move candidate : board.getNbOfDestroyedSquare(targetR, targetC, joueur)) {
+                if (k.matches(r, c, m, candidate)) { d = candidate; break; }
+            }
+            if (d != null) {
+                if (i == 0) tried0 = k; else tried1 = k;
+                board.destruireCase(d);
+                int score = alphaBeta(board, next,
+                        max ? m.getRow() : myRow, max ? m.getCol() : myCol,
+                        max ? oppRow : m.getRow(), max ? oppCol : m.getCol(),
+                        depth + 1, alpha, beta);
+                b[d.getRow()][d.getCol()] = Mark.EMPTY;
+                meilleur = max ? Math.max(meilleur, score) : Math.min(meilleur, score);
+                if (max) alpha = Math.max(alpha, meilleur); else beta = Math.min(beta, meilleur);
+            }
+            b[m.getRow()][m.getCol()] = Mark.EMPTY;
+            b[r][c] = joueur;
+            if (tempsEcoule) return meilleur;
+            if (alpha >= beta) {
+                rememberKiller(depth, r, c, m, d);
+                return meilleur;
+            }
+        }
+        // Recherche habituelle, sans rejouer les killers deja testes.
+        for (Move m : moves) {
+            b[r][c] = Mark.EMPTY;
+            b[m.getRow()][m.getCol()] = joueur;
+            for (Move d : board.getNbOfDestroyedSquare(targetR, targetC, joueur)) {
+                if ((tried0 != null && tried0.matches(r, c, m, d))
+                        || (tried1 != null && tried1.matches(r, c, m, d))) continue;
+                board.destruireCase(d);
+                int score = alphaBeta(board, next,
+                        max ? m.getRow() : myRow, max ? m.getCol() : myCol,
+                        max ? oppRow : m.getRow(), max ? oppCol : m.getCol(),
+                        depth + 1, alpha, beta);
+                b[d.getRow()][d.getCol()] = Mark.EMPTY;
+                meilleur = max ? Math.max(meilleur, score) : Math.min(meilleur, score);
+                if (max) alpha = Math.max(alpha, meilleur); else beta = Math.min(beta, meilleur);
+                if (tempsEcoule) break;
+                if (alpha >= beta) {
+                    rememberKiller(depth, r, c, m, d);
+                    break;
+                }
+            }
+            b[m.getRow()][m.getCol()] = Mark.EMPTY;
+            b[r][c] = joueur;
+            if (alpha >= beta || tempsEcoule) break;
+        }
+        return meilleur;
+    }
 }
